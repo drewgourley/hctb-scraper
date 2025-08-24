@@ -4,15 +4,14 @@
   "version": "1.0.0",
   "description": "A Scraper for Here Comes The Bus",
   "type": "module",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "rollup": "rollup -c",
-    "project": "tsc -p .",
-    "build": "tsc -b .",
-    "dev": "concurrently --kill-others \"npm run project -- -w\" \"nodemon dist/index.js\"",
-    "start": "npm run build && node dist/index.js"
+    "build": "tsc -b . --clean",
+    "dev": "concurrently --kill-others \"npm run build -- -w\" \"nodemon ./dist/index.js\"",
+    "start": "node ./dist/index.js"
   },
   "dependencies": {
+    "cheerio": "1.0.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "node-cron": "^4.2.1",
