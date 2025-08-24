@@ -4,13 +4,13 @@
   "version": "1.0.0",
   "description": "A Scraper for Here Comes The Bus",
   "type": "module",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
     "rollup": "rollup -c",
     "project": "tsc -p .",
     "build": "tsc -b .",
-    "dev": "concurrently --kill-others \"npm run project -- -w\" \"nodemon dist/app.js\"",
-    "start": "npm run build && node dist/app.js"
+    "dev": "concurrently --kill-others \"npm run project -- -w\" \"nodemon dist/index.js\"",
+    "start": "npm run build && node dist/index.js"
   },
   "dependencies": {
     "dotenv": "^17.2.1",

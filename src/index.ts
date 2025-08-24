@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import http from 'http';
 import puppeteer, { Browser, type Cookie, type LaunchOptions, Page } from 'puppeteer';
 import cron, { type TaskContext } from 'node-cron';
-import type { Child, Defaults, Location, Session, Time } from './models.ts';
+import type { Child, Defaults, Location, Session, Time } from './models.js';
 
 dotenv.config({ quiet: true });
 
