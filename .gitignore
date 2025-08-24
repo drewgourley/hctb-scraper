@@ -1,0 +1,6 @@
+.env
+.legacy
+dist
+ecosystem.config*
+node_modules
+tsconfig.tsbuildinfo

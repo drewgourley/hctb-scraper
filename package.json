@@ -1,0 +1,29 @@
+{
+  "name": "hctb-scraper",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A Scraper for Here Comes The Bus",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "rollup": "rollup -c",
+    "project": "tsc -p .",
+    "build": "tsc -b .",
+    "dev": "concurrently --kill-others \"npm run project -- -w\" \"nodemon dist/app.js\"",
+    "start": "npm run build && node dist/app.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "node-cron": "^4.2.1",
+    "node-fetch": "^3.3.2",
+    "puppeteer": "^24.17.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
+    "concurrently": "^9.2.0",
+    "nodemon": "^3.1.10",
+    "typescript": "^5.9.2"
+  }
+}
