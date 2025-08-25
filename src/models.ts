@@ -25,6 +25,7 @@ export interface Session {
   cookiestring: string;
   children: Child[];
   time: Time;
+  expires: Date;
 }
 
 export interface Location {

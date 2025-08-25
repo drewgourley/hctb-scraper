@@ -7,9 +7,9 @@
   "main": "index.ts",
   "scripts": {
     "build": "tsc -b --clean && tsc -b .",
-    "watch": "tsc -b --clean && tsc -b . --watch",
+    "watch": "tsc -b . --watch",
     "nodemon": "nodemon --watch ./dist --exec node ./dist/index.js",
-    "dev": "concurrently --kill-others \"npm run watch\" \"npm run nodemon\"",
+    "dev": "npm run build && concurrently --kill-others \"npm run watch\" \"npm run nodemon\"",
     "start": "node ./dist/index.js"
   },
   "dependencies": {
@@ -17,8 +17,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "node-cron": "^4.2.1",
-    "node-fetch": "^3.3.2",
-    "puppeteer": "^24.17.0"
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",

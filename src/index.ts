@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import express, { type Request, type Response, type Express } from 'express';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
 import http from 'http';
-import puppeteer, { type Browser, type Cookie, type LaunchOptions, type Page } from 'puppeteer';
 import { TrueFalseString, type Child, type Defaults, type Location, type RefreshMapInput, type Session, type Time } from './models.js';
 dotenv.config({ quiet: true });
 const app: Express = express();
@@ -22,30 +21,63 @@ app.get('/', (req: Request, res: Response) => {
 });
 http.createServer(app).listen(defaults.PORT, () => {
   console.log(`HCTB Scraper started, Healthcheck available on port ${defaults.PORT}`);
-  cron.schedule(schedule, async (ctx: TaskContext) => { await task(0, ctx); }, { noOverlap: true });
+  cron.schedule(schedule, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
 });
 
 async function login(): Promise<void> {
   console.info('  Logging in');
-  let browser: Browser | undefined;
   try {
-    let launchoptions: LaunchOptions = { args: ['--no-sandbox', '--disable-setuid-sandbox'] };
-    if (!isdev) launchoptions.executablePath = '/usr/bin/chromium-browser';
-    browser = await puppeteer.launch(launchoptions);
-    const page: Page = await browser.newPage();
-    await page.goto('https://login.herecomesthebus.com/Authenticate.aspx');
-    await page.type('#ctl00_ctl00_cphWrapper_cphContent_tbxUserName', defaults.HCTB_USERNAME);
-    await page.type('#ctl00_ctl00_cphWrapper_cphContent_tbxPassword', defaults.HCTB_PASSWORD);
-    await page.type('#ctl00_ctl00_cphWrapper_cphContent_tbxAccountNumber', defaults.HCTB_SCHOOLCODE);
-    await Promise.all([page.click('#ctl00_ctl00_cphWrapper_cphContent_btnAuthenticate'), page.waitForNavigation()]);
-    const cookies: Cookie[] = await browser.cookies();
-    await browser.close();
-    if (cookies?.find((cookie) => cookie.name === '.ASPXFORMSAUTH')) {
-      let cookiestring: string = '';
+    let cookiestring: string = '';
+    let viewstate: string = '';
+    let viewstategenerator: string = '';
+    let eventvalidation: string = '';
+    await fetch('https://login.herecomesthebus.com/authenticate.aspx', {
+      method: 'GET',
+    })
+    .then((res: FetchResponse) => {
+      if (res?.ok) {
+        const setcookie = res.headers.raw()['set-cookie'] ?? [];
+        cookiestring += setcookie.map(cookie => cookie.split(';')[0]).join('; ');
+        return res.text();
+      }
+      throw new Error(res?.status?.toString());
+    })
+    .then((text: string) => {
+      if (text) {
+        const $ = cheerio.load(text);
+        viewstate = $('#__VIEWSTATE').val() as string;
+        viewstategenerator = $('#__VIEWSTATEGENERATOR').val() as string;
+        eventvalidation = $('#__EVENTVALIDATION').val() as string;
+        return text;
+      }
+      throw new Error('Failed to fetch Form page');
+    });
+    const form = new FormData();
+    form.append('__VIEWSTATE', viewstate);
+    form.append('__VIEWSTATEGENERATOR', viewstategenerator);
+    form.append('__EVENTVALIDATION', eventvalidation);
+    form.append('ctl00$ctl00$cphWrapper$cphContent$tbxUserName', defaults.HCTB_USERNAME);
+    form.append('ctl00$ctl00$cphWrapper$cphContent$tbxPassword', defaults.HCTB_PASSWORD);
+    form.append('ctl00$ctl00$cphWrapper$cphContent$tbxAccountNumber', defaults.HCTB_SCHOOLCODE);
+    form.append('ctl00$ctl00$cphWrapper$cphContent$btnAuthenticate', 'Log In');
+    await fetch('https://login.herecomesthebus.com/authenticate.aspx', {
+      redirect: 'manual',
+      headers: { cookie: cookiestring, 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(form as any).toString(),
+      method: 'POST',
+    })
+    .then((res: FetchResponse) => {
+      if (res.status === 302) {
+        const setcookie = res.headers.raw()['set-cookie'] ?? [];
+        cookiestring += `; ${setcookie.map(cookie => cookie.split(';')[0]).join('; ')}`;
+        return res;
+      }
+      throw new Error('Failed to post Form');
+    });
+    if (cookiestring.includes('.ASPXFORMSAUTH')) {
       let children: Child[] = [];
       let time: Time | undefined;
-      for (const cookie of cookies) { cookiestring += `${cookie.name}=${cookie.value}; `; }
-      await fetch('https://login.herecomesthebus.com/Map.aspx', {
+      await fetch('https://login.herecomesthebus.com/map.aspx', {
         headers: { cookie: cookiestring },
         method: 'GET',
       })
@@ -70,7 +102,7 @@ async function login(): Promise<void> {
       });
       if (children.length && time) {
         healthy = true;
-        session = { cookiestring, children, time };
+        session = { cookiestring, children, time, expires: new Date(new Date().getTime() + (19*60*1000)) };
         console.info('  Session established');
       } else {
         throw new Error('Failed to establish session');
@@ -81,8 +113,6 @@ async function login(): Promise<void> {
   } catch (error) {
     healthy = false;
     console.error('Login error:', error);
-  } finally {
-    if (browser) await browser.close();
   }
 }
 
@@ -92,18 +122,13 @@ async function scrape(child: Child): Promise<Location> {
   try {
     if (child.active) {
       const input: RefreshMapInput = { legacyID: child.id, name: child.name, timeSpanId: session?.time.id, wait: TrueFalseString.True };
-      await fetch('https://login.herecomesthebus.com/Map.aspx/RefreshMap', {
+      await fetch('https://login.herecomesthebus.com/map.aspx/refreshmap', {
         headers: { cookie: session?.cookiestring ?? '', 'content-type': 'application/json; charset=UTF-8' },
         body: JSON.stringify(input),
         method: 'POST',
       })
       .then((res: FetchResponse) => {
         if (res?.ok) return res.json();
-        if (res?.status === 401) {
-          console.info('  Session expired');
-          session = null;
-          return res;
-        }
         throw new Error(res?.status?.toString());
       })
       .then((json: any) => {
@@ -161,24 +186,21 @@ async function sync(child: Child): Promise<void> {
   }
 }
 
-async function task(runs: number, ctx?: TaskContext): Promise<void> {
-  if (ctx) console.info('Bus location task started:', ctx.triggeredAt.toISOString());
-  let relog: boolean = false;
+async function task(ctx: TaskContext): Promise<void> {
+  console.info('Bus location task started:', ctx.triggeredAt.toISOString());
+  if (session && ctx.triggeredAt.getTime() > session.expires.getTime()) {
+    console.info('  Session expired');
+    session = null;
+  } 
   if (!session) await login();
   for (const child of session?.children || []) {
     const location = await scrape(child);
-    if (session) {
-      if (child.current) child.previous = child.current;
-      child.current = location;
-      if (child.previous?.lat !== child.current.lat && child.previous?.lon !== child.current.lon) {
-        await sync(child);
-      } else {
-        console.info(`Bus location did not change for ${child.name}`);
-      }
+    if (child.current) child.previous = child.current;
+    child.current = location;
+    if (child.previous?.lat !== child.current.lat && child.previous?.lon !== child.current.lon) {
+      await sync(child);
     } else {
-      relog = true;
+      console.info(`Bus location did not change for ${child.name}`);
     }
   }
-  if (relog) runs++;
-  if (runs === 1) await task(runs);
 }
