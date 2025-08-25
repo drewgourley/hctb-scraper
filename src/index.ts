@@ -52,7 +52,7 @@ async function login(): Promise<void> {
       }
       throw new Error('Failed to fetch Form page');
     });
-    const form = new FormData();
+    const form: FormData = new FormData();
     form.append('__VIEWSTATE', viewstate);
     form.append('__VIEWSTATEGENERATOR', viewstategenerator);
     form.append('__EVENTVALIDATION', eventvalidation);
@@ -63,7 +63,7 @@ async function login(): Promise<void> {
     await fetch('https://login.herecomesthebus.com/authenticate.aspx', {
       redirect: 'manual',
       headers: { cookie: cookiestring, 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(form as any).toString(),
+      body: new URLSearchParams(form as unknown as Record<string, string>).toString(),
       method: 'POST',
     })
     .then((res: FetchResponse) => {
