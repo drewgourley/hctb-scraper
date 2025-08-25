@@ -1,6 +1,7 @@
 .env
 .legacy
 .vscode
+.pat
 dist
 ecosystem.config*
 node_modules
