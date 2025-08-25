@@ -39,7 +39,7 @@ async function login(): Promise<void> {
     await page.type('#ctl00_ctl00_cphWrapper_cphContent_tbxPassword', defaults.HCTB_PASSWORD);
     await page.type('#ctl00_ctl00_cphWrapper_cphContent_tbxAccountNumber', defaults.HCTB_SCHOOLCODE);
     await page.click('#ctl00_ctl00_cphWrapper_cphContent_btnAuthenticate');
-    await page.waitForNavigation({ waitUntil: 'load' });
+    await page.waitForNavigation();
     const cookies: Cookie[] = await browser.cookies();
     await browser.close();
     if (cookies?.find((cookie) => cookie.name === '.ASPXFORMSAUTH')) {
