@@ -10,28 +10,20 @@ dotenv.config({ quiet: true });
 const app: Express = express();
 const defaults: Defaults = process.env as unknown as Defaults;
 const defaultlocation: Location = { lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
-const DEV: boolean = defaults.NODE_ENV === 'development';
-const schedule: string = DEV ? '15,45 * * * * *' : `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
+const isdev: boolean = defaults.NODE_ENV === 'development';
+const schedule: string = isdev ? '15,45 * * * * *' : `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
 let healthy: boolean = true;
 let session: Session | null = null;
 app.use(express.json());
 app.get('/', (req: Request, res: Response) => {
   const now: string = new Date().toISOString();
   let ip: string[] = req.socket.remoteAddress?.split(':') ?? [];
-  console.log(`${now}: Healthcheck requested by ${ip[ip.length - 1]}, reporting ${healthy ? 'healthy' : 'unhealthy'}`);
+  console.info(`${now}: Healthcheck requested by ${ip[ip.length - 1]}, reporting ${healthy ? 'healthy' : 'unhealthy'}`);
   res.send({ healthy });
 });
 http.createServer(app).listen(defaults.PORT, () => {
   console.log(`HCTB Scraper started, Healthcheck available on port ${defaults.PORT}`);
-  cron.schedule(
-    schedule,
-    async (ctx: TaskContext) => {
-      const runs: number = 0;
-      console.info('Bus location task started:', ctx.triggeredAt.toISOString());
-      await task(runs);
-    },
-    { noOverlap: true }
-  );
+  cron.schedule(schedule, async (ctx: TaskContext) => { await task(0, ctx); }, { noOverlap: true });
 });
 
 async function login(): Promise<void> {
@@ -39,7 +31,7 @@ async function login(): Promise<void> {
   let browser: Browser | undefined;
   try {
     let launchoptions: LaunchOptions = { args: ['--no-sandbox', '--disable-setuid-sandbox'] };
-    if (!DEV) launchoptions.executablePath = '/usr/bin/chromium-browser';
+    if (!isdev) launchoptions.executablePath = '/usr/bin/chromium-browser';
     browser = await puppeteer.launch(launchoptions);
     const page: Page = await browser.newPage();
     await page.goto('https://login.herecomesthebus.com/Authenticate.aspx');
@@ -51,7 +43,7 @@ async function login(): Promise<void> {
     const cookies: Cookie[] = await browser.cookies();
     await browser.close();
     if (cookies?.find((cookie) => cookie.name === '.ASPXFORMSAUTH')) {
-      if (DEV) console.debug('--Got session cookie');
+      if (isdev) console.debug('--Got session cookie');
       let cookiestring: string = '';
       let children: Child[] = [];
       let time: Time | undefined;
@@ -66,16 +58,16 @@ async function login(): Promise<void> {
       })
       .then((text: string) => {
         if (text) {
-          if (DEV) console.debug('--Fetched Map page');
+          if (isdev) console.debug('--Fetched Map page');
           const $ = cheerio.load(text);
           for (const option of $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectPassenger option')) {
             const child: Child = { name: $(option).text(), id: $(option).val() as string, active: true };
-            if (DEV) console.debug(`--Found child - Name: ${child.name}, ID: ${child.id}`);
+            if (isdev) console.debug(`--Found child - Name: ${child.name}, ID: ${child.id}`);
             children.push(child);
           }
           const timeoption = $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectTimeOfDay option[selected="selected"]');
           time = { label: timeoption.text(), id: timeoption.val() as string };
-          if (DEV) console.debug(`--Found time - Label: ${time.label}, ID: ${time.id}`);
+          if (isdev) console.debug(`--Found time - Label: ${time.label}, ID: ${time.id}`);
           return text;
         }
         throw new Error('Failed to fetch Map page');
@@ -123,21 +115,21 @@ async function scrape(child: Child): Promise<Location | undefined> {
           console.log('--JSON Dump:', commandstring);
           if (commandstring.includes('No stops found for student')) {
             child.active = false;
-            if (DEV) console.debug(`--Scrape found bus not running`);
+            if (isdev) console.debug(`--Scrape found bus not running`);
           }
           if (commandstring === 'ClearStaticLayer();\r\nClearDynamicLayer();\r\n') {
-            if (DEV) console.debug(`--Scrape found nothing`);
+            if (isdev) console.debug(`--Scrape found nothing`);
           }
           if (commandstring.includes('SetBusPushPin')) {
             const match: RegExpMatchArray | null = commandstring.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
             if (match && match[1] && match[2]) {
               location = { lat: match[1], lon: match[2] };
-              if (DEV) console.debug(`--Scrape found location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
+              if (isdev) console.debug(`--Scrape found location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
             }
           }
           if (!location) {
             location = defaultlocation;
-            if (DEV) console.debug(`--Using default location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
+            if (isdev) console.debug(`--Using default location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
           }
         }
         return json;
@@ -177,7 +169,8 @@ async function sync(child: Child): Promise<void> {
   }
 }
 
-async function task(runs: number = 0): Promise<void> {
+async function task(runs: number, ctx?: TaskContext): Promise<void> {
+  if (ctx) console.info('Bus location task started:', ctx.triggeredAt.toISOString());
   let location: Location | undefined;
   let relog: boolean = false;
   if (!session) await login();
@@ -186,7 +179,7 @@ async function task(runs: number = 0): Promise<void> {
       location = await scrape(child);
     } else {
       location = defaultlocation;
-      if (DEV) console.debug(`--Using default location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
+      if (isdev) console.debug(`--Using default location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
     }
     if (location) {
       if (child.current) child.previous = child.current;
@@ -201,5 +194,5 @@ async function task(runs: number = 0): Promise<void> {
     }
   }
   if (relog) runs++;
-  if (runs === 1) await task();
+  if (runs === 1) await task(runs);
 }
