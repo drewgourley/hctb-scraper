@@ -111,17 +111,17 @@ async function scrape(child: Child): Promise<Location | undefined> {
       })
       .then((json: any) => {
         if (json && json.d) {
-          const commandstring: string = json.d;
-          console.log('--JSON Dump:', commandstring);
-          if (commandstring.includes('No stops found for student')) {
+          const data: string = json.d;
+          console.log('--JSON Dump:', data);
+          if (data.includes('No stops found for student')) {
             child.active = false;
             if (isdev) console.debug(`--Scrape found bus not running`);
           }
-          if (commandstring === 'ClearStaticLayer();\r\nClearDynamicLayer();\r\n') {
+          if (data === 'ClearStaticLayer();\r\nClearDynamicLayer();\r\n') {
             if (isdev) console.debug(`--Scrape found nothing`);
           }
-          if (commandstring.includes('SetBusPushPin')) {
-            const match: RegExpMatchArray | null = commandstring.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
+          if (data.includes('SetBusPushPin')) {
+            const match: RegExpMatchArray | null = data.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
             if (match && match[1] && match[2]) {
               location = { lat: match[1], lon: match[2] };
               if (isdev) console.debug(`--Scrape found location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
