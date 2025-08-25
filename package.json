@@ -7,7 +7,9 @@
   "main": "index.ts",
   "scripts": {
     "build": "tsc -b . --clean",
-    "dev": "concurrently --kill-others \"npm run build -- -w\" \"nodemon ./dist/index.js\"",
+    "watch": "tsc -b . --watch",
+    "nodemon": "nodemon --watch ./dist --exec node ./dist/index.js",
+    "dev": "concurrently --kill-others \"npm run watch\" \"npm run nodemon\"",
     "start": "node ./dist/index.js"
   },
   "dependencies": {
