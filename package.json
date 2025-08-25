@@ -6,8 +6,8 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "build": "tsc -b . --clean",
-    "watch": "tsc -b . --watch",
+    "build": "tsc -b --clean && tsc -b .",
+    "watch": "tsc -b --clean && tsc -b . --watch",
     "nodemon": "nodemon --watch ./dist --exec node ./dist/index.js",
     "dev": "concurrently --kill-others \"npm run watch\" \"npm run nodemon\"",
     "start": "node ./dist/index.js"

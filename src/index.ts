@@ -9,7 +9,6 @@ import { TrueFalseString, type Child, type Defaults, type Location, type Refresh
 dotenv.config({ quiet: true });
 const app: Express = express();
 const defaults: Defaults = process.env as unknown as Defaults;
-const defaultlocation: Location = { lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
 const isdev: boolean = defaults.NODE_ENV === 'development';
 const schedule: string = isdev ? '15,45 * * * * *' : `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
 let healthy: boolean = true;
@@ -43,7 +42,6 @@ async function login(): Promise<void> {
     const cookies: Cookie[] = await browser.cookies();
     await browser.close();
     if (cookies?.find((cookie) => cookie.name === '.ASPXFORMSAUTH')) {
-      if (isdev) console.debug('--Got session cookie');
       let cookiestring: string = '';
       let children: Child[] = [];
       let time: Time | undefined;
@@ -58,7 +56,6 @@ async function login(): Promise<void> {
       })
       .then((text: string) => {
         if (text) {
-          if (isdev) console.debug('--Fetched Map page');
           const $ = cheerio.load(text);
           for (const option of $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectPassenger option')) {
             const child: Child = { name: $(option).text(), id: $(option).val() as string, active: true };
@@ -90,16 +87,17 @@ async function login(): Promise<void> {
   }
 }
 
-async function scrape(child: Child): Promise<Location | undefined> {
+async function scrape(child: Child): Promise<Location> {
   console.info(`  Scraping data for ${child.name}`);
-  let location: Location | undefined;
+  let location: Location = { default: true, lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
   try {
-    const input: RefreshMapInput = { legacyID: child.id, name: child.name, timeSpanId: session?.time.id, wait: TrueFalseString.True };
-    await fetch('https://login.herecomesthebus.com/Map.aspx/RefreshMap', {
-      headers: { cookie: session?.cookiestring ?? '', 'content-type': 'application/json; charset=UTF-8' },
-      body: JSON.stringify(input),
-      method: 'POST',
-    })
+    if (child.active) {
+      const input: RefreshMapInput = { legacyID: child.id, name: child.name, timeSpanId: session?.time.id, wait: TrueFalseString.True };
+      await fetch('https://login.herecomesthebus.com/Map.aspx/RefreshMap', {
+        headers: { cookie: session?.cookiestring ?? '', 'content-type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify(input),
+        method: 'POST',
+      })
       .then((res: FetchResponse) => {
         if (res?.ok) return res.json();
         if (res?.status === 401) {
@@ -112,31 +110,26 @@ async function scrape(child: Child): Promise<Location | undefined> {
       .then((json: any) => {
         if (json && json.d) {
           const data: string = json.d;
-          console.log('--JSON Dump:', data);
-          if (data.includes('No stops found for student')) {
+          if (
+            data.includes('No stops found for student') ||
+            data.includes('The bus has completed the current route and cannot be viewed at this time')
+          ) {
             child.active = false;
-            if (isdev) console.debug(`--Scrape found bus not running`);
-          }
-          if (data === 'ClearStaticLayer();\r\nClearDynamicLayer();\r\n') {
-            if (isdev) console.debug(`--Scrape found nothing`);
           }
           if (data.includes('SetBusPushPin')) {
             const match: RegExpMatchArray | null = data.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
             if (match && match[1] && match[2]) {
-              location = { lat: match[1], lon: match[2] };
-              if (isdev) console.debug(`--Scrape found location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
+              location = { default: false, lat: match[1], lon: match[2] };
             }
-          }
-          if (!location) {
-            location = defaultlocation;
-            if (isdev) console.debug(`--Using default location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
           }
         }
         return json;
       });
+    }
   } catch (error) {
     console.error('Scrape error:', error);
   } finally {
+    if (isdev) console.debug(`--Scrape sending ${ location.default ? 'default' : 'location'} [${location.lat}, ${location.lon}]`);
     return location;
   }
 }
@@ -171,17 +164,11 @@ async function sync(child: Child): Promise<void> {
 
 async function task(runs: number, ctx?: TaskContext): Promise<void> {
   if (ctx) console.info('Bus location task started:', ctx.triggeredAt.toISOString());
-  let location: Location | undefined;
   let relog: boolean = false;
   if (!session) await login();
   for (const child of session?.children || []) {
-    if (child.active) {
-      location = await scrape(child);
-    } else {
-      location = defaultlocation;
-      if (isdev) console.debug(`--Using default location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
-    }
-    if (location) {
+    const location = await scrape(child);
+    if (session) {
       if (child.current) child.previous = child.current;
       child.current = location;
       if (child.previous?.lat !== child.current.lat && child.previous?.lon !== child.current.lon) {
@@ -189,7 +176,7 @@ async function task(runs: number, ctx?: TaskContext): Promise<void> {
       } else {
         console.info(`Bus location did not change for ${child.name}`);
       }
-    } else if (!session) {
+    } else {
       relog = true;
     }
   }

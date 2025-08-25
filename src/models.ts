@@ -28,6 +28,7 @@ export interface Session {
 }
 
 export interface Location {
+  default: boolean;
   lat: string;
   lon: string;
 }
