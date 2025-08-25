@@ -5,7 +5,7 @@ import express, { type Request, type Response, type Express } from 'express';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
 import http from 'http';
 import puppeteer, { type Browser, type Cookie, type LaunchOptions, type Page } from 'puppeteer';
-import type { Child, Defaults, Location, Session, Time } from './models.js';
+import { TrueFalseString, type Child, type Defaults, type Location, type RefreshMapInput, type Session, type Time } from './models.js';
 dotenv.config({ quiet: true });
 const app: Express = express();
 const defaults: Defaults = process.env as unknown as Defaults;
@@ -22,8 +22,7 @@ app.get('/', (req: Request, res: Response) => {
   res.send({ healthy });
 });
 http.createServer(app).listen(defaults.PORT, () => {
-  console.log('HCTB Scraper started');
-  console.log(`Healthcheck available on port ${defaults.PORT}`);
+  console.log(`HCTB Scraper started, Healthcheck available on port ${defaults.PORT}`);
   cron.schedule(
     schedule,
     async (ctx: TaskContext) => {
@@ -62,11 +61,8 @@ async function login(): Promise<void> {
         method: 'GET',
       })
       .then((res: FetchResponse) => {
-        if (res?.ok) {
-          return res.text();
-        } else {
-          throw new Error(res?.status?.toString());
-        };
+        if (res?.ok) return res.text();
+        throw new Error(res?.status?.toString());
       })
       .then((text: string) => {
         if (text) {
@@ -81,9 +77,8 @@ async function login(): Promise<void> {
           time = { label: timeoption.text(), id: timeoption.val() as string };
           if (DEV) console.debug(`--Found time - Label: ${time.label}, ID: ${time.id}`);
           return text;
-        } else {
-          throw new Error('Failed to fetch Map page');
-        };
+        }
+        throw new Error('Failed to fetch Map page');
       });
       if (children.length && time) {
         healthy = true;
@@ -107,28 +102,20 @@ async function scrape(child: Child): Promise<Location | undefined> {
   console.info(`  Scraping data for ${child.name}`);
   let location: Location | undefined;
   try {
+    const input: RefreshMapInput = { legacyID: child.id, name: child.name, timeSpanId: session?.time.id, wait: TrueFalseString.True };
     await fetch('https://login.herecomesthebus.com/Map.aspx/RefreshMap', {
-      headers: {
-        'content-type': 'application/json; charset=UTF-8',
-        cookie: session?.cookiestring ?? '',
-      },
-      body: JSON.stringify({
-        legacyID: child.id,
-        name: child.name,
-        timeSpanId: session?.time.id ?? '',
-        wait: 'true',
-      }),
+      headers: { cookie: session?.cookiestring ?? '', 'content-type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify(input),
       method: 'POST',
     })
       .then((res: FetchResponse) => {
-        if (res?.ok) {
-          return res.json();
-        } else if (res?.status === 401) {
+        if (res?.ok) return res.json();
+        if (res?.status === 401) {
           console.info('  Session expired');
           session = null;
-        } else {
-          throw new Error(res?.status?.toString());
+          return res;
         }
+        throw new Error(res?.status?.toString());
       })
       .then((json: any) => {
         if (json && json.d) {
@@ -176,8 +163,11 @@ async function sync(child: Child): Promise<void> {
         body: JSON.stringify({ dev_id: device, gps: [child.current.lat, child.current.lon] }),
         method: 'POST',
       }).then((res) => {
-        if (res?.ok) return console.info(`Bus location sent to HomeAssistant device '${device}'`);
-        return res;
+        if (res?.ok) {
+          console.info(`Bus location sent to HomeAssistant device '${device}'`);
+          return res;
+        }
+        throw new Error(res?.status?.toString());
       });
     } else {
       throw new Error('Device ID or Location could not be resolved');

@@ -31,3 +31,15 @@ export interface Location {
   lat: string;
   lon: string;
 }
+
+export interface RefreshMapInput {
+  legacyID: string;
+  name: string;
+  timeSpanId: string | undefined;
+  wait: TrueFalseString;
+}
+
+export enum TrueFalseString {
+  True = 'true',
+  False = 'false',
+}
