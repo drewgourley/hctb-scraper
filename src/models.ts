@@ -5,6 +5,7 @@ export interface Defaults {
   HCTB_SCHOOLCODE: string;
   DEFAULT_LAT: string;
   DEFAULT_LON: string;
+  PORT: number;
 }
 
 export interface Child {

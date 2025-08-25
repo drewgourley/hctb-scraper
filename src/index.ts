@@ -6,20 +6,14 @@ import fetch, { type Response as FetchResponse } from 'node-fetch';
 import http from 'http';
 import puppeteer, { type Browser, type Cookie, type LaunchOptions, type Page } from 'puppeteer';
 import type { Child, Defaults, Location, Session, Time } from './models.js';
-
 dotenv.config({ quiet: true });
-
 const app: Express = express();
 const defaults: Defaults = process.env as unknown as Defaults;
 const defaultlocation: Location = { lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
 const DEV: boolean = defaults.NODE_ENV === 'development';
-const port: number = 8080;
-const schedule: string = DEV
-  ? '15,45 * * * * *'
-  : `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
+const schedule: string = DEV ? '15,45 * * * * *' : `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
 let healthy: boolean = true;
 let session: Session | null = null;
-
 app.use(express.json());
 app.get('/', (req: Request, res: Response) => {
   const now: string = new Date().toISOString();
@@ -27,9 +21,9 @@ app.get('/', (req: Request, res: Response) => {
   console.log(`${now}: Healthcheck requested by ${ip[ip.length - 1]}, reporting ${healthy ? 'healthy' : 'unhealthy'}`);
   res.send({ healthy });
 });
-http.createServer(app).listen(port, () => {
+http.createServer(app).listen(defaults.PORT, () => {
   console.log('HCTB Scraper started');
-  console.log(`Healthcheck available on port ${port}`);
+  console.log(`Healthcheck available on port ${defaults.PORT}`);
   cron.schedule(
     schedule,
     async (ctx: TaskContext) => {
@@ -81,7 +75,7 @@ async function login(): Promise<void> {
           for (const option of $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectPassenger option')) {
             const child: Child = { name: $(option).text(), id: $(option).val() as string, active: true };
             if (DEV) console.debug(`--Found child - Name: ${child.name}, ID: ${child.id}`);
-            children?.push(child);
+            children.push(child);
           }
           const timeoption = $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectTimeOfDay option[selected="selected"]');
           time = { label: timeoption.text(), id: timeoption.val() as string };
@@ -139,7 +133,6 @@ async function scrape(child: Child): Promise<Location | undefined> {
       .then((json: any) => {
         if (json && json.d) {
           const commandstring: string = json.d;
-          let scrapelocation: Location | undefined;
           console.log('--JSON Dump:', commandstring);
           if (commandstring.includes('No stops found for student')) {
             child.active = false;
@@ -151,15 +144,14 @@ async function scrape(child: Child): Promise<Location | undefined> {
           if (commandstring.includes('SetBusPushPin')) {
             const match: RegExpMatchArray | null = commandstring.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
             if (match && match[1] && match[2]) {
-              scrapelocation = { lat: match[1], lon: match[2] };
-              if (DEV) console.debug(`--Scrape found location - Latitude: ${scrapelocation.lat}, Longitude: ${scrapelocation.lon}`);
+              location = { lat: match[1], lon: match[2] };
+              if (DEV) console.debug(`--Scrape found location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
             }
           }
-          if (!scrapelocation) {
-            scrapelocation = defaultlocation;
-            if (DEV) console.debug(`--Scrape using default location - Latitude: ${scrapelocation.lat}, Longitude: ${scrapelocation.lon}`);
+          if (!location) {
+            location = defaultlocation;
+            if (DEV) console.debug(`--Using default location - Latitude: ${location.lat}, Longitude: ${location.lon}`);
           }
-          location = scrapelocation;
         }
         return json;
       });
@@ -195,7 +187,7 @@ async function sync(child: Child): Promise<void> {
   }
 }
 
-async function task(runs = 0): Promise<void> {
+async function task(runs: number = 0): Promise<void> {
   let location: Location | undefined;
   let relog: boolean = false;
   if (!session) await login();
