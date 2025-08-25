@@ -144,7 +144,7 @@ async function scrape(child: Child): Promise<Location | undefined> {
 async function sync(child: Child): Promise<void> {
   console.info(`  Syncing location for ${child.name}`);
   try {
-    const firstname: string | undefined = child?.name?.split(' ')[0]?.toLowerCase();
+    const firstname: string | undefined = child.name.split(' ')[0]?.toLowerCase();
     if (firstname && child.current) {
       const device: string = `${firstname}_bus`;
       await fetch(`${process.env.HASS_URI}/api/services/device_tracker/see`, {
