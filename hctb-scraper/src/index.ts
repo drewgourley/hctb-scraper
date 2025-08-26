@@ -8,8 +8,7 @@ dotenv.config({ quiet: true });
 
 const defaults: Defaults = process.env as unknown as Defaults;
 const defaultlocation: Location = { default: true, lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
-const isdev: boolean = defaults.NODE_ENV === 'development';
-const schedule: string = isdev ? '15,45 * * * * *' : `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
+const schedule: string = `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
 let healthy: boolean = true;
 let session: Session | null = null;
 
@@ -93,12 +92,10 @@ async function login(ctx: TaskContext): Promise<void> {
                 current: defaultlocation,
                 previous: defaultlocation,
               };
-              if (isdev) console.debug(`--Found child - Name: ${child.name}, ID: ${child.id}`);
               children.push(child);
             }
             const timeoption = $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectTimeOfDay option[selected="selected"]');
             time = { label: timeoption.text(), id: timeoption.val() as string };
-            if (isdev) console.debug(`--Found time - Label: ${time.label}, ID: ${time.id}`);
             return text;
           }
           throw new Error('Failed to fetch Map page');

@@ -1,11 +1,9 @@
 export interface Defaults {
-  NODE_ENV: string;
   HCTB_USERNAME: string;
   HCTB_PASSWORD: string;
   HCTB_SCHOOLCODE: string;
   DEFAULT_LAT: string;
   DEFAULT_LON: string;
-  PORT: number;
 }
 
 export interface Location {
