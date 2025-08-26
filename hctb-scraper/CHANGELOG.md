@@ -3,3 +3,4 @@
 * 2.1.0: Convert to Home Assistant add-on
 * 2.1.1: Fix Dockerfile issue
 * 2.1.2: Fix tsconfig issue
+* 2.1.3: Fix anoter Dockerfile issue

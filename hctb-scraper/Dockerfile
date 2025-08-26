@@ -10,7 +10,7 @@ RUN apk add --no-cache \
     git
 
 COPY package.json /
-COPY src /
+COPY src /src
 COPY tsconfig.json /
 RUN cd / && npm install --unsafe-perm
 RUN cd / && npm run build
