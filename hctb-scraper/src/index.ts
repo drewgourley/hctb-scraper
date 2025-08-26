@@ -1,14 +1,11 @@
 import * as cheerio from 'cheerio';
 import cron, { type TaskContext } from 'node-cron';
 import dotenv from 'dotenv';
-import express, { type Request, type Response, type Express } from 'express';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
-import http from 'http';
 import { TrueFalseString, type Child, type Defaults, type Location, type RefreshMapInput, type Session, type Time } from './models.js';
 
 dotenv.config({ quiet: true });
 
-const app: Express = express();
 const defaults: Defaults = process.env as unknown as Defaults;
 const defaultlocation: Location = { default: true, lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
 const isdev: boolean = defaults.NODE_ENV === 'development';
@@ -16,17 +13,8 @@ const schedule: string = isdev ? '15,45 * * * * *' : `0,30 * 7,8,9,10,11,12,13,1
 let healthy: boolean = true;
 let session: Session | null = null;
 
-app.use(express.json());
-app.get('/', (req: Request, res: Response) => {
-  const now: string = new Date().toISOString();
-  let ip: string[] = req.socket.remoteAddress?.split(':') ?? [];
-  console.info(`${now}: Healthcheck requested by ${ip[ip.length - 1]}, reporting ${healthy ? 'healthy' : 'unhealthy'}`);
-  res.send({ healthy });
-});
-http.createServer(app).listen(defaults.PORT, () => {
-  console.log(`HCTB Scraper started, Healthcheck available on port ${defaults.PORT}`);
-  cron.schedule(schedule, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
-});
+console.log(`HCTB Scraper started`);
+cron.schedule(schedule, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
 
 async function login(ctx: TaskContext): Promise<void> {
   try {
@@ -184,7 +172,7 @@ async function sync(child: Child): Promise<void> {
         const device: string = `${firstname}_bus`;
         await fetch(`${process.env.HASS_URI}/api/services/device_tracker/see`, {
           headers: {
-            Authorization: `Bearer ${process.env.HASS_TOKEN}`,
+            Authorization: `Bearer ${process.env.SUPERVISOR_TOKEN}`,
             'Content-Type': `application/json`,
           },
           body: JSON.stringify({ dev_id: device, gps: [child.current.lat, child.current.lon] }),
