@@ -1,0 +1,28 @@
+{
+  "configuration": {
+    "hctb_username": {
+      "name": "HCTB Username",
+      "description": "The username you use to log into Here Comes The Bus"
+    },
+    "hctb_password": {
+      "name": "HCTB Password",
+      "description": "The password you use to log into Here Comes The Bus"
+    },
+    "hctb_schoolcode": {
+      "name": "HCTB School Code",
+      "description": "The school code you use to log into Here Comes The Bus"
+    },
+    "default_lat": {  
+      "name": "Default Latitude",
+      "description": "The default latitude to use if no location is found, get your school location from https://latlong.net/"
+    },
+    "default_lon": {  
+      "name": "Default Longitude",
+      "description": "The default longitude to use if no location is found, use the school location from https://latlong.net/"
+    },
+    "schedule": {
+      "name": "Schedule",
+      "description": "The cron schedule to use for scraping, minus seconds and minutes which are hard-coded to every 30 seconds. See https://crontab.guru/ for help. Default is '7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5' which runs every hour from 7am to 4pm on school days."
+    }
+  }
+}
