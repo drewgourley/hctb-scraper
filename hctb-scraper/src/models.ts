@@ -1,4 +1,5 @@
 export interface Defaults {
+  SUPERVISOR_TOKEN: string;
   HCTB_USERNAME: string;
   HCTB_PASSWORD: string;
   HCTB_SCHOOLCODE: string;

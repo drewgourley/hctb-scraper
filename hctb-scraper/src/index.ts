@@ -167,9 +167,9 @@ async function sync(child: Child): Promise<void> {
       const firstname: string | undefined = child.name.split(' ')[0]?.toLowerCase();
       if (firstname && child.current) {
         const device: string = `${firstname}_bus`;
-        await fetch(`${process.env.HASS_URI}/api/services/device_tracker/see`, {
+        await fetch(`http://supervisor/core/api/services/device_tracker/see`, {
           headers: {
-            Authorization: `Bearer ${process.env.SUPERVISOR_TOKEN}`,
+            Authorization: `Bearer ${defaults.SUPERVISOR_TOKEN}`,
             'Content-Type': `application/json`,
           },
           body: JSON.stringify({ dev_id: device, gps: [child.current.lat, child.current.lon] }),
