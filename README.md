@@ -1,6 +1,7 @@
-# Here Comes The Bus location scraper repository
+# Here Comes The Bus Location Scraper
 
 This add-on will add a background service which will periodically check for bus rides and scrape the data for use in HomeAssistant device trackers.
+Inspired by https://github.com/dispherical/hctb-api
 
 [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdrewgourley%2Fhctb-scraper)
 
@@ -16,7 +17,7 @@ This repository contains the following add-ons
 ![Supports armv7 Architecture][armv7-shield]
 ![Supports i386 Architecture][i386-shield]
 
-_Your kid's bus rides, directly tracked in HomeAssistant!_
+_Your kid's bus rides, tracked directly in HomeAssistant!_
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg

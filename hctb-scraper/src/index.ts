@@ -9,7 +9,6 @@ dotenv.config({ quiet: true });
 const defaults: Defaults = process.env as unknown as Defaults;
 const defaultlocation: Location = { default: true, lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
 const schedule: string = `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
-let healthy: boolean = true;
 let session: Session | null = null;
 
 console.log(`HCTB Scraper started`);
@@ -101,7 +100,6 @@ async function login(ctx: TaskContext): Promise<void> {
           throw new Error('Failed to fetch Map page');
         });
         if (children.length && time) {
-          healthy = true;
           session = { cookiestring, children, time, expires: new Date(new Date().getTime() + (19*60*1000)) };
           console.info('  Session started');
         } else {
@@ -112,7 +110,6 @@ async function login(ctx: TaskContext): Promise<void> {
       }
     }
   } catch (error) {
-    healthy = false;
     console.error('Login error:', error);
   }
 }
