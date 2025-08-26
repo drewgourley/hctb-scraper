@@ -2,13 +2,13 @@ import * as cheerio from 'cheerio';
 import cron, { type TaskContext } from 'node-cron';
 import dotenv from 'dotenv';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
-import { TrueFalseString, type Child, type Defaults, type Location, type RefreshMapInput, type Session, type Time } from './models.js';
+import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Session, type Time } from './models.js';
 
 dotenv.config({ quiet: true });
 
-const defaults: Defaults = process.env as unknown as Defaults;
-const defaultlocation: Location = { default: true, lat: defaults.DEFAULT_LAT, lon: defaults.DEFAULT_LON };
-const schedule: string = `0,30 * 7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5`;
+const config: Config = process.env as unknown as Config;
+const defaultlocation: Location = { default: true, lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
+const schedule: string = `0,30 * ${config.SCHEDULE}`;
 let session: Session | null = null;
 
 console.log(`HCTB Scraper started`);
@@ -51,9 +51,9 @@ async function login(ctx: TaskContext): Promise<void> {
       form.append('__VIEWSTATE', viewstate);
       form.append('__VIEWSTATEGENERATOR', viewstategenerator);
       form.append('__EVENTVALIDATION', eventvalidation);
-      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxUserName', defaults.HCTB_USERNAME);
-      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxPassword', defaults.HCTB_PASSWORD);
-      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxAccountNumber', defaults.HCTB_SCHOOLCODE);
+      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxUserName', config.HCTB_USERNAME);
+      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxPassword', config.HCTB_PASSWORD);
+      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxAccountNumber', config.HCTB_SCHOOLCODE);
       form.append('ctl00$ctl00$cphWrapper$cphContent$btnAuthenticate', 'Log In');
       await fetch('https://login.herecomesthebus.com/authenticate.aspx', {
         redirect: 'manual',
@@ -166,7 +166,7 @@ async function sync(child: Child): Promise<void> {
         const device: string = `${firstname}_bus`;
         await fetch(`http://supervisor/core/api/services/device_tracker/see`, {
           headers: {
-            Authorization: `Bearer ${defaults.SUPERVISOR_TOKEN}`,
+            Authorization: `Bearer ${config.SUPERVISOR_TOKEN}`,
             'Content-Type': `application/json`,
           },
           body: JSON.stringify({ dev_id: device, gps: [child.current.lat, child.current.lon] }),

@@ -1,6 +1,6 @@
 {
   "name": "HCTB Scraper",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "slug": "hctb_scraper",
   "description": "This add-on will add a background service which will periodically check for bus rides and scrape the data for use in HomeAssistant device trackers. Built by Drew Gourley",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
@@ -12,7 +12,8 @@
     "hctb_password": null,
     "hctb_schoolcode": null,
     "default_lat": null,
-    "default_lon": null
+    "default_lon": null,
+    "schedule": "7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5"
   },
   "schema": {
     "hctb_username": "str",
