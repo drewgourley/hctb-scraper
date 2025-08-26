@@ -8,12 +8,18 @@ export interface Defaults {
   PORT: number;
 }
 
+export interface Location {
+  default: boolean;
+  lat: string;
+  lon: string;
+}
+
 export interface Child {
   name: string;
   id: string;
   active: boolean;
-  current?: { lat: string; lon: string };
-  previous?: { lat: string; lon: string };
+  current: Location;
+  previous: Location;
 }
 
 export interface Time {
@@ -28,10 +34,9 @@ export interface Session {
   expires: Date;
 }
 
-export interface Location {
-  default: boolean;
-  lat: string;
-  lon: string;
+export enum TrueFalseString {
+  True = 'true',
+  False = 'false',
 }
 
 export interface RefreshMapInput {
@@ -39,9 +44,4 @@ export interface RefreshMapInput {
   name: string;
   timeSpanId: string | undefined;
   wait: TrueFalseString;
-}
-
-export enum TrueFalseString {
-  True = 'true',
-  False = 'false',
 }
