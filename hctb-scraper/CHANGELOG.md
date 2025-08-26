@@ -8,3 +8,4 @@
 * 2.1.5: Finalize for release
 * 2.1.6: Fix readme
 * 2.1.7: Add logo, icon, configurable schedule
+* 2.1.8: Add schedule to schema
