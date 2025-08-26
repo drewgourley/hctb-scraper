@@ -1,7 +1,7 @@
 {
   "name": "hctb-scraper",
   "private": true,
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "A Scraper for Here Comes The Bus",
   "type": "module",
   "main": "index.ts",
