@@ -2,3 +2,4 @@
 * 1.1.0: Total Rewrite and convert to typescript project
 * 2.1.0: Convert to Home Assistant add-on
 * 2.1.1: Fix Dockerfile issue
+* 2.1.2: Fix tsconfig issue
