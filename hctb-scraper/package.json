@@ -1,27 +1,26 @@
 {
   "name": "hctb-scraper",
   "private": true,
-  "version": "2025.08.27.1",
+  "version": "2025.08.27.2",
   "description": "A Scraper for Here Comes The Bus",
   "type": "module",
   "main": "index.ts",
   "scripts": {
     "build": "tsc -b --clean && tsc -b .",
     "watch": "tsc -b . --watch",
-    "nodemon": "nodemon --watch ./dist --exec node ./dist/index.js",
+    "nodemon": "nodemon --watch ./dist --exec node --env-file=./.env ./dist/index.js",
     "dev": "npm run build && concurrently --kill-others \"npm run watch\" \"npm run nodemon\"",
     "start": "node ./dist/index.js"
   },
   "dependencies": {
-    "cheerio": "1.0.0",
-    "dotenv": "^17.2.1",
+    "@types/node": "^24.3.0",
+    "cheerio": "^1.1.2",
     "node-cron": "^4.2.1",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "typescript": "^5.9.2"
   },
   "devDependencies": {
-    "@types/node": "^24.3.0",
     "concurrently": "^9.2.0",
-    "nodemon": "^3.1.10",
-    "typescript": "^5.9.2"
+    "nodemon": "^3.1.10"
   }
 }

@@ -12,7 +12,7 @@ RUN apk add --no-cache \
 COPY package.json /
 COPY src /src
 COPY tsconfig.json /
-RUN cd / && npm install --unsafe-perm
+RUN cd / && npm install --unsafe-perm --omit=dev
 RUN cd / && npm run build
 
 COPY run.sh /

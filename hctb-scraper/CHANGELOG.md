@@ -11,3 +11,4 @@
 * 2.1.8: Add schedule to schema
 * 2.1.9: Add config translations
 * 2025.08.27.1: Moved to date-based versioning to be more in-line with Home Assistant versioning. Made adjustments to reset for local development, which was not in place since the switch to a Home Assistant add-on. Minor fixes to details and naming consistnecy. Removed some cruft from the 1.0.0 legacy version. 
+* 2025.08.27.2: Optimize packages
