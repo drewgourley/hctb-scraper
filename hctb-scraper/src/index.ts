@@ -164,7 +164,7 @@ async function sync(child: Child): Promise<void> {
       const firstname: string | undefined = child.name.split(' ')[0]?.toLowerCase();
       if (firstname && child.current) {
         const device: string = `${firstname}_bus`;
-        await fetch(`http://supervisor/core/api/services/device_tracker/see`, {
+        await fetch(`${config.SUPERVISOR_URI}/api/services/device_tracker/see`, {
           headers: {
             Authorization: `Bearer ${config.SUPERVISOR_TOKEN}`,
             'Content-Type': `application/json`,

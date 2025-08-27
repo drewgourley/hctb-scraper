@@ -1,5 +1,6 @@
 export interface Config {
   SUPERVISOR_TOKEN: string;
+  SUPERVISOR_URI: string;
   HCTB_USERNAME: string;
   HCTB_PASSWORD: string;
   HCTB_SCHOOLCODE: string;
