@@ -1,6 +1,6 @@
 #include <tunables/global>
 
-profile hctb-scraper flags=(attach_disconnected,mediate_deleted) {
+profile hctb_scraper flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
   # Capabilities
@@ -24,24 +24,30 @@ profile hctb-scraper flags=(attach_disconnected,mediate_deleted) {
   /usr/lib/bashio/** ix,
   /tmp/** rwk,
 
-  # Allow reading the Node.js binary and scripts
-  /usr/bin/node rix,
-  /usr/local/bin/node rix,
-  /usr/bin/hctb-scraper rix,
-  /data/** rw, # Read/write access to persistent data/config
-  /tmp/** rw, # Temporary files
+  # Access to files within the add-on
+  /data/** rw,
 
-  # Allow reading system files needed for basic operation
-  /etc/passwd r,
-  /etc/group r,
+  # Start new profile for service
+  /usr/bin/hctb-scraper cx -> hctb-scraper,
 
-  # Allow access to device files for logging/output
-  /dev/tty rw,
+  profile hctb-scraper flags=(attach_disconnected,mediate_deleted) {
+    #include <abstractions/base>
 
-  # Allow network access
-  network inet stream,
-  network inet dgram,
+    # Receive signals from S6-Overlay
+    signal (receive) peer=*_hctb_overlay,
 
-  # Deny everything else by default
-  deny /** w,
+    # Access to files within the add-on
+    /data/** rw,
+
+    # Allow reading the Node.js binary and scripts
+    /usr/bin/node rix,
+    /usr/local/bin/node rix,
+    /usr/bin/hctb-scraper rix,
+    /bin/bash rix,
+    /bin/echo ix,
+
+    # Allow reading system files needed for basic operation
+    /etc/passwd r,
+    /etc/group r,
+  }
 }
