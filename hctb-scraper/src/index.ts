@@ -1,7 +1,7 @@
-import * as cheerio from 'cheerio';
+import { parse, type HTMLElement } from 'node-html-parser';
 import cron, { type TaskContext } from 'node-cron';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
-import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Session, type Time } from './models.js';
+import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Session } from './models.js';
 
 const config: Config = process.env as unknown as Config;
 const defaultlocation: Location = { default: true, lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
@@ -36,10 +36,10 @@ async function login(ctx: TaskContext): Promise<void> {
       })
       .then((text: string) => {
         if (text) {
-          const $ = cheerio.load(text);
-          viewstate = $('#__VIEWSTATE').val() as string;
-          viewstategenerator = $('#__VIEWSTATEGENERATOR').val() as string;
-          eventvalidation = $('#__EVENTVALIDATION').val() as string;
+          const root: HTMLElement = parse(text);
+          viewstate = root.querySelector('#__VIEWSTATE')?.attributes.value ?? '';
+          viewstategenerator = root.querySelector('#__VIEWSTATEGENERATOR')?.attributes.value ?? '';
+          eventvalidation = root.querySelector('#__EVENTVALIDATION')?.attributes.value ?? '';
           return text;
         }
         throw new Error('Failed to fetch Form page');
@@ -60,7 +60,7 @@ async function login(ctx: TaskContext): Promise<void> {
       })
       .then((res: FetchResponse) => {
         if (res.status === 302) {
-          const setcookie = res.headers.raw()['set-cookie'] ?? [];
+          const setcookie: string[] = res.headers.raw()['set-cookie'] ?? [];
           cookiestring += `; ${setcookie.map(cookie => cookie.split(';')[0]).join('; ')}`;
           return res;
         }
@@ -68,7 +68,7 @@ async function login(ctx: TaskContext): Promise<void> {
       });
       if (cookiestring.includes('.ASPXFORMSAUTH')) {
         let children: Child[] = [];
-        let time: Time | undefined;
+        let time: string | undefined;
         await fetch('https://login.herecomesthebus.com/map.aspx', {
           headers: { cookie: cookiestring },
           method: 'GET',
@@ -79,19 +79,21 @@ async function login(ctx: TaskContext): Promise<void> {
         })
         .then((text: string) => {
           if (text) {
-            const $ = cheerio.load(text);
-            for (const option of $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectPassenger option')) {
+            const root: HTMLElement = parse(text);
+            const options: HTMLElement[] = root.querySelectorAll('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectPassenger option');
+            for (const option of options) {
               const child: Child = {
-                name: $(option).text(),
-                id: $(option).val() as string,
+                name: option.innerText,
+                id: option.attributes.value!,
                 active: true,
                 current: defaultlocation,
                 previous: defaultlocation,
               };
               children.push(child);
             }
-            const timeoption = $('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectTimeOfDay option[selected="selected"]');
-            time = { label: timeoption.text(), id: timeoption.val() as string };
+            const timeoption: HTMLElement | null = 
+              root.querySelector('#ctl00_ctl00_cphWrapper_cphControlPanel_ddlSelectTimeOfDay option[selected="selected"]');
+            if (timeoption && timeoption.attributes.value) time = timeoption.attributes.value;
             return text;
           }
           throw new Error('Failed to fetch Map page');
@@ -116,7 +118,7 @@ async function scrape(child: Child): Promise<void> {
     child.previous = child.current;
     if (child.active) {
       console.info(`  Scraping data for ${child.name}`);
-      const input: RefreshMapInput = { legacyID: child.id, name: child.name, timeSpanId: session?.time.id, wait: TrueFalseString.True };
+      const input: RefreshMapInput = { legacyID: child.id, name: child.name, timeSpanId: session?.time, wait: TrueFalseString.True };
       await fetch('https://login.herecomesthebus.com/map.aspx/refreshmap', {
         headers: { cookie: session?.cookiestring ?? '', 'content-type': 'application/json; charset=UTF-8' },
         body: JSON.stringify(input),

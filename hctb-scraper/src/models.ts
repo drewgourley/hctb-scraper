@@ -23,15 +23,10 @@ export interface Child {
   previous: Location;
 }
 
-export interface Time {
-  label: string;
-  id: string;
-}
-
 export interface Session {
   cookiestring: string;
   children: Child[];
-  time: Time;
+  time: string;
   expires: Date;
 }
 

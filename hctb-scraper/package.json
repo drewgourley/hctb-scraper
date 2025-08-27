@@ -1,7 +1,7 @@
 {
   "name": "hctb-scraper",
   "private": true,
-  "version": "2025.08.27.2",
+  "version": "2025.08.27.3",
   "description": "A Scraper for Here Comes The Bus",
   "type": "module",
   "main": "index.ts",
@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@types/node": "^24.3.0",
-    "cheerio": "^1.1.2",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
+    "node-html-parser": "^7.0.1",
     "typescript": "^5.9.2"
   },
   "devDependencies": {
