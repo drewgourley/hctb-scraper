@@ -108,7 +108,6 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
           };
           console.info('  Session started');
         } else {
-          sessions[school] = null;
           throw new Error('Failed to establish session');
         }
       } else {
