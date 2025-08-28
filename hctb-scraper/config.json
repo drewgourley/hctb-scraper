@@ -7,6 +7,7 @@
   "url": "https://github.com/drewgourley/hctb-scraper",
   "init": false,
   "homeassistant_api": true,
+  "codenotary": "drewgourley@gmail.com",
   "options": {
     "hctb_username": null,
     "hctb_password": null,
