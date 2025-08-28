@@ -15,3 +15,4 @@
 * 2025.08.27.3: Migrate cheerio to node-html-parser, code optimization
 * 2025.08.27.4: Add AppArmor and security hardening
 * 2025.08.27.5: Add Documentation
+* 2025.08.27.6: Rename Documentation
