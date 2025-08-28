@@ -16,4 +16,4 @@
 * 2025.08.27.4: Add AppArmor and security hardening
 * 2025.08.27.5: Add Documentation
 * 2025.08.27.6: Rename Documentation
-* 2025.08.28.0: Multischool enhancement
+* 2025.08.28.0: Multischool enhancement, documentation updates
