@@ -8,6 +8,7 @@
   "init": false,
   "homeassistant_api": true,
   "codenotary": "drewgourley@gmail.com",
+  "auth_api": true,
   "options": {
     "hctb_username": null,
     "hctb_password": null,
