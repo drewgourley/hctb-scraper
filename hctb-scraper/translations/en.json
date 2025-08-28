@@ -2,15 +2,15 @@
   "configuration": {
     "hctb_username": {
       "name": "HCTB Username",
-      "description": "The username you use to log into Here Comes The Bus"
+      "description": "The username you use to log into Here Comes The Bus."
     },
     "hctb_password": {
       "name": "HCTB Password",
-      "description": "The password you use to log into Here Comes The Bus"
+      "description": "The password you use to log into Here Comes The Bus."
     },
     "hctb_schoolcode": {
       "name": "HCTB School Code",
-      "description": "The school code you use to log into Here Comes The Bus"
+      "description": "The school code you use to log into Here Comes The Bus. This can be a comma separated list of school codes if you have multiple shcools to watch."
     },
     "default_lat": {  
       "name": "Default Latitude",

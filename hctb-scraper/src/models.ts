@@ -23,6 +23,10 @@ export interface Child {
   previous: Location;
 }
 
+export interface Sessions {
+  [key: string]: Session | null;
+}
+
 export interface Session {
   cookiestring: string;
   children: Child[];

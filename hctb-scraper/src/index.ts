@@ -1,23 +1,24 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import cron, { type TaskContext } from 'node-cron';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
-import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Session } from './models.js';
+import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Session, type Sessions } from './models.js';
 
 const config: Config = process.env as unknown as Config;
 const defaultlocation: Location = { default: true, lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
+const schools: string[] = config.HCTB_SCHOOLCODE.replace(' ', '').split(',');
 const schedule: string = `0,30 * ${config.SCHEDULE}`;
-let session: Session | null = null;
+let sessions: Sessions = {};
 
 console.log(`HCTB Scraper started`);
 cron.schedule(schedule, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
 
-async function login(ctx: TaskContext): Promise<void> {
+async function login(ctx: TaskContext, school: string): Promise<void> {
   try {
-    if (session && ctx.triggeredAt.getTime() > session.expires.getTime()) {
+    if (sessions[school] && ctx.triggeredAt.getTime() > sessions[school].expires.getTime()) {
       console.info('  Session expired');
-      session = null;
+      sessions[school] = null;
     } 
-    if (!session) {
+    if (!sessions[school]) {
       console.info('  Logging in');
       let cookiestring: string = '';
       let viewstate: string = '';
@@ -50,7 +51,7 @@ async function login(ctx: TaskContext): Promise<void> {
       form.append('__EVENTVALIDATION', eventvalidation);
       form.append('ctl00$ctl00$cphWrapper$cphContent$tbxUserName', config.HCTB_USERNAME);
       form.append('ctl00$ctl00$cphWrapper$cphContent$tbxPassword', config.HCTB_PASSWORD);
-      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxAccountNumber', config.HCTB_SCHOOLCODE);
+      form.append('ctl00$ctl00$cphWrapper$cphContent$tbxAccountNumber', school);
       form.append('ctl00$ctl00$cphWrapper$cphContent$btnAuthenticate', 'Log In');
       await fetch('https://login.herecomesthebus.com/authenticate.aspx', {
         redirect: 'manual',
@@ -99,9 +100,15 @@ async function login(ctx: TaskContext): Promise<void> {
           throw new Error('Failed to fetch Map page');
         });
         if (children.length && time) {
-          session = { cookiestring, children, time, expires: new Date(new Date().getTime() + (19*60*1000)) };
+          sessions[school] = {
+            cookiestring,
+            children,
+            time,
+            expires: new Date(new Date().getTime() + (19*60*1000)),
+          };
           console.info('  Session started');
         } else {
+          sessions[school] = null;
           throw new Error('Failed to establish session');
         }
       } else {
@@ -113,20 +120,25 @@ async function login(ctx: TaskContext): Promise<void> {
   }
 }
 
-async function scrape(child: Child): Promise<void> {
+async function scrape(child: Child, school: string): Promise<void> {
   try {
     child.previous = child.current;
-    if (child.active) {
+    if (child.active && sessions[school]) {
       console.info(`  Scraping data for ${child.name}`);
-      const input: RefreshMapInput = { legacyID: child.id, name: child.name, timeSpanId: session?.time, wait: TrueFalseString.True };
+      const input: RefreshMapInput = {
+        legacyID: child.id,
+        name: child.name,
+        timeSpanId: sessions[school].time,
+        wait: TrueFalseString.True,
+      };
       await fetch('https://login.herecomesthebus.com/map.aspx/refreshmap', {
-        headers: { cookie: session?.cookiestring ?? '', 'content-type': 'application/json; charset=UTF-8' },
+        headers: { cookie: sessions[school].cookiestring, 'content-type': 'application/json; charset=UTF-8' },
         body: JSON.stringify(input),
         method: 'POST',
       })
       .then((res: FetchResponse) => {
         if (res?.ok) return res.json();
-        if (res?.status === 403) session = null;
+        if (res?.status === 403) sessions[school] = null;
         throw new Error(res?.status?.toString());
       })
       .then((json: any) => {
@@ -156,9 +168,9 @@ async function scrape(child: Child): Promise<void> {
   }
 }
 
-async function sync(child: Child): Promise<void> {
+async function sync(child: Child, school: string): Promise<void> {
   try {
-    if (session && (child.previous.lat !== child.current.lat && child.previous.lon !== child.current.lon)) {
+    if (sessions[school] && (child.previous.lat !== child.current.lat && child.previous.lon !== child.current.lon)) {
       console.info(`  Syncing location for ${child.name}`);
       const firstname: string | undefined = child.name.split(' ')[0]?.toLowerCase();
       if (firstname && child.current) {
@@ -190,9 +202,11 @@ async function sync(child: Child): Promise<void> {
 
 async function task(ctx: TaskContext): Promise<void> {
   console.info('Bus location task started:', ctx.triggeredAt.toISOString());
-  await login(ctx);
-  for (const child of session?.children || []) {
-    await scrape(child);
-    await sync(child);
+  for (const school of schools) {
+    await login(ctx, school);
+    for (const child of sessions[school]?.children || []) {
+      await scrape(child, school);
+      await sync(child, school);
+    }
   }
 }
