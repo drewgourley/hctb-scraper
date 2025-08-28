@@ -11,7 +11,7 @@ Inspired by https://github.com/dispherical/hctb-api
 
 This repository contains the following add-ons
 
-### [HCTB Scraper](./example)
+### [HCTB Scraper](./)
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]
