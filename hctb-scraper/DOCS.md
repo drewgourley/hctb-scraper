@@ -1,7 +1,7 @@
 # HCTB Scraper Documentation
 
 ## Account Setup
-You must provide your HCTB Username and Password in order for the scaper to log into your account and get location data, this is no different than logging into the HCTB frontend itself, and your credentials will not leave HomeAssistant.
+You must provide your HCTB Username and Password in order for the scaper to log into your account and get location data. This is no different than logging into the HCTB frontend itself, and your credentials will not leave HomeAssistant.
 
 You must also provide a school code which is provided by HCTB. For individuals who are tracking more than one school code, this configuration option can be given as a comma-separated list.
 
