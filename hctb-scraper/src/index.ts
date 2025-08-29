@@ -146,6 +146,7 @@ async function scrape(child: Child, school: string): Promise<void> {
           const data: string = json.d;
           if (
             data.includes('No stops found for student') ||
+            data.includes('Vehicle Not In Service') ||
             data.includes('The bus has completed the current route and cannot be viewed at this time')
           ) {
             child.active = false;
