@@ -18,3 +18,4 @@
 * 2025.08.27.6: Rename Documentation
 * 2025.08.28.0: Multischool enhancement, documentation updates
 * 2025.08.29.0: Handling for day-off route situation
+* 2025.08.29.1: Handling for "lost" bus situation

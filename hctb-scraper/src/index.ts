@@ -1,7 +1,17 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import cron, { type TaskContext } from 'node-cron';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
-import { TrueFalseString, type Child, type Config, type DeviceResponse, type HCTBResponse, type Location, type RefreshMapInput, type Session, type Sessions } from './models.js';
+import {
+  TrueFalseString,
+  type Child,
+  type Config,
+  type DeviceResponse,
+   type HCTBResponse,
+   type Location,
+   type RefreshMapInput,
+   type Session,
+   type Sessions,
+} from './models.js';
 
 const config: Config = process.env as unknown as Config;
 const defaultlocation: Location = { lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
