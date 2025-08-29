@@ -1,7 +1,7 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import cron, { type TaskContext } from 'node-cron';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
-import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Sessions } from './models.js';
+import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Session, type Sessions } from './models.js';
 
 const config: Config = process.env as unknown as Config;
 const defaultlocation: Location = { default: true, lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
@@ -100,12 +100,13 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
           throw new Error('Failed to fetch Map page');
         });
         if (children.length && time) {
-          sessions[school] = {
+          const session: Session = {
             cookiestring,
             children,
             time,
             expires: new Date(new Date().getTime() + (19*60*1000)),
-          };
+          }
+          sessions[school] = session;
           console.info('  Session started');
         } else {
           throw new Error('Failed to establish session');
