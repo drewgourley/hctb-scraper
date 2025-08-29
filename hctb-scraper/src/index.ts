@@ -1,16 +1,15 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import cron, { type TaskContext } from 'node-cron';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
-import { TrueFalseString, type Child, type Config, type Location, type RefreshMapInput, type Session, type Sessions } from './models.js';
+import { TrueFalseString, type Child, type Config, type DeviceResponse, type HCTBResponse, type Location, type RefreshMapInput, type Session, type Sessions } from './models.js';
 
 const config: Config = process.env as unknown as Config;
-const defaultlocation: Location = { default: true, lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
+const defaultlocation: Location = { lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
 const schools: string[] = config.HCTB_SCHOOLCODE.replace(' ', '').split(',');
-const schedule: string = `0,30 * ${config.SCHEDULE}`;
 let sessions: Sessions = {};
 
 console.log(`HCTB Scraper started`);
-cron.schedule(schedule, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
+cron.schedule(`0,30 * ${config.SCHEDULE}`, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
 
 async function login(ctx: TaskContext, school: string): Promise<void> {
   try {
@@ -87,8 +86,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
                 name: option.innerText,
                 id: option.attributes.value!,
                 active: true,
-                current: defaultlocation,
-                previous: defaultlocation,
+                location: defaultlocation,
               };
               children.push(child);
             }
@@ -122,47 +120,50 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
 
 async function scrape(child: Child, school: string): Promise<void> {
   try {
-    child.previous = child.current;
-    if (child.active && sessions[school]) {
-      console.info(`  Scraping data for ${child.name}`);
-      const input: RefreshMapInput = {
-        legacyID: child.id,
-        name: child.name,
-        timeSpanId: sessions[school].time,
-        wait: TrueFalseString.True,
-      };
-      await fetch('https://login.herecomesthebus.com/map.aspx/refreshmap', {
-        headers: { cookie: sessions[school].cookiestring, 'content-type': 'application/json; charset=UTF-8' },
-        body: JSON.stringify(input),
-        method: 'POST',
-      })
-      .then((res: FetchResponse) => {
-        if (res?.ok) return res.json();
-        if (res?.status === 403) sessions[school] = null;
-        throw new Error(res?.status?.toString());
-      })
-      .then((json: any) => {
-        if (json && json.d) {
-          const data: string = json.d;
-          if (
-            data.includes('No stops found for student') ||
-            data.includes('Vehicle Not In Service') ||
-            data.includes('The bus has completed the current route and cannot be viewed at this time')
-          ) {
-            child.active = false;
-          }
-          if (data.includes('SetBusPushPin')) {
-            const match: RegExpMatchArray | null = data.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
-            if (match && match[1] && match[2]) {
-              child.current = { default: false, lat: match[1], lon: match[2] };
+    if (sessions[school]) {
+      if (child.active) {
+        console.info(`  Scraping data for ${child.name}`);
+        const input: RefreshMapInput = {
+          legacyID: child.id,
+          name: child.name,
+          timeSpanId: sessions[school].time,
+          wait: TrueFalseString.True,
+        };
+        await fetch('https://login.herecomesthebus.com/map.aspx/refreshmap', {
+          headers: { cookie: sessions[school].cookiestring, 'content-type': 'application/json; charset=UTF-8' },
+          body: JSON.stringify(input),
+          method: 'POST',
+        })
+        .then((res: FetchResponse) => {
+          if (res?.ok) return res.json();
+          if (res?.status === 403) sessions[school] = null;
+          throw new Error(res?.status?.toString());
+        })
+        .then((json: any) => {
+          if (json && json.d) {
+            const jsonres: HCTBResponse = json;
+            if (
+              jsonres.d.includes('No stops found for student') ||
+              jsonres.d.includes('Vehicle Not In Service') ||
+              jsonres.d.includes('The bus has completed the current route and cannot be viewed at this time')
+            ) {
+              child.active = false;
+            }
+            if (jsonres.d.includes('SetBusPushPin')) {
+              const match: RegExpMatchArray | null = jsonres.d.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
+              if (match && match[1] && match[2]) {
+                child.location = { lat: match[1], lon: match[2] };
+              }
             }
           }
-        }
-        return json;
-      });
+          return json;
+        });
+      } else {
+        console.info(`  Skipping scrape for ${child.name}`);
+        child.location = defaultlocation;
+      }
     } else {
-      console.info(`  Skipping scrape for ${child.name}`);
-      child.current = defaultlocation;
+      throw new Error('Session not established');
     }
   } catch (error) {
     console.error('Scrape error:', error);
@@ -171,30 +172,61 @@ async function scrape(child: Child, school: string): Promise<void> {
 
 async function sync(child: Child, school: string): Promise<void> {
   try {
-    if (sessions[school] && (child.previous.lat !== child.current.lat && child.previous.lon !== child.current.lon)) {
+    if (sessions[school]) {
       console.info(`  Syncing location for ${child.name}`);
       const firstname: string | undefined = child.name.split(' ')[0]?.toLowerCase();
-      if (firstname && child.current) {
+      if (firstname) {
         const device: string = `${firstname}_bus`;
-        await fetch(`${config.SUPERVISOR_URI}/api/services/device_tracker/see`, {
+        let previous: Location | undefined;
+        await fetch(`${config.SUPERVISOR_URI}/api/states/device_tracker.${device}`, {
           headers: {
             Authorization: `Bearer ${config.SUPERVISOR_TOKEN}`,
             'Content-Type': `application/json`,
           },
-          body: JSON.stringify({ dev_id: device, gps: [child.current.lat, child.current.lon] }),
-          method: 'POST',
-        }).then((res) => {
+          method: 'GET',
+        })
+        .then((res) => {
           if (res?.ok) {
-            console.info(`Bus location sent to HomeAssistant device '${device}'`);
+            console.info(`  Device state received for '${device}'`);
+            return res.json();
+          }
+          if (res?.status === 404) {
+            console.info(`  Create device '${device}'`);
             return res;
           }
           throw new Error(res?.status?.toString());
+        })
+        .then((json: any) => {
+          if (json && json.attributes && json.attributes.latitude && json.attributes.longitude) {
+            const jsonres: DeviceResponse = json;
+            previous = { lat: jsonres.attributes.latitude.toString(), lon: jsonres.attributes.longitude.toString() };
+          }
+          return json;
         });
+        if (!previous || previous && (previous?.lat !== child.location.lat && previous?.lon !== child.location.lon)) {
+          await fetch(`${config.SUPERVISOR_URI}/api/services/device_tracker/see`, {
+            headers: {
+              Authorization: `Bearer ${config.SUPERVISOR_TOKEN}`,
+              'Content-Type': `application/json`,
+            },
+            body: JSON.stringify({ dev_id: device, gps: [child.location.lat, child.location.lon] }),
+            method: 'POST',
+          })
+          .then((res) => {
+            if (res?.ok) {
+              console.info(`Bus location sent to HomeAssistant device '${device}'`);
+              return res;
+            }
+            throw new Error(res?.status?.toString());
+          });
+        } else {
+          console.info(`Bus location did not change for '${device}'`);
+        }
       } else {
         throw new Error('Device ID or Location could not be resolved');
       }
     } else {
-      console.info(`Bus location did not change for ${child.name}`);
+      throw new Error('Session not established');
     }
   } catch (error) {
     console.error('Sync Error:', error);

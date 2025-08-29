@@ -10,7 +10,6 @@ export interface Config {
 }
 
 export interface Location {
-  default: boolean;
   lat: string;
   lon: string;
 }
@@ -19,8 +18,7 @@ export interface Child {
   name: string;
   id: string;
   active: boolean;
-  current: Location;
-  previous: Location;
+  location: Location;
 }
 
 export interface Sessions {
@@ -44,4 +42,15 @@ export interface RefreshMapInput {
   name: string;
   timeSpanId: string | undefined;
   wait: TrueFalseString;
+}
+
+export interface DeviceResponse {
+  attributes: {
+    latitude: number;
+    longitude: number;
+  }
+}
+
+export interface HCTBResponse {
+  d: string;
 }
