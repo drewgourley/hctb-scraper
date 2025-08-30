@@ -20,3 +20,4 @@
 * 2025.08.29.0: Handling for day-off route situation
 * 2025.08.29.1: Handling for "lost" bus situation
 * 2025.08.30.0: Fix untyped input
+* 2025.08.30.1: Streamline logging and show task time to finish
