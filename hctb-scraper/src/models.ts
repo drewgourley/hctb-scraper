@@ -44,6 +44,13 @@ export interface RefreshMapInput {
   wait: TrueFalseString;
 }
 
+type GpsArray = [string, string];
+
+export interface SyncInput {
+  dev_id: string,
+  gps: GpsArray,
+}
+
 export interface DeviceResponse {
   attributes: {
     latitude: number;

@@ -6,11 +6,12 @@ import {
   type Child,
   type Config,
   type DeviceResponse,
-   type HCTBResponse,
-   type Location,
-   type RefreshMapInput,
-   type Session,
-   type Sessions,
+  type HCTBResponse,
+  type Location,
+  type RefreshMapInput,
+  type Session,
+  type Sessions,
+  type SyncInput,
 } from './models.js';
 
 const config: Config = process.env as unknown as Config;
@@ -214,12 +215,13 @@ async function sync(child: Child, school: string): Promise<void> {
           return json;
         });
         if (!previous || previous && (previous?.lat !== child.location.lat && previous?.lon !== child.location.lon)) {
+          const syncbody: SyncInput = { dev_id: device, gps: [child.location.lat, child.location.lon] };
           await fetch(`${config.SUPERVISOR_URI}/api/services/device_tracker/see`, {
             headers: {
               Authorization: `Bearer ${config.SUPERVISOR_TOKEN}`,
               'Content-Type': `application/json`,
             },
-            body: JSON.stringify({ dev_id: device, gps: [child.location.lat, child.location.lon] }),
+            body: JSON.stringify(syncbody),
             method: 'POST',
           })
           .then((res) => {
