@@ -125,7 +125,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('  Login error:', error);
   }
 }
 
@@ -159,11 +159,13 @@ async function scrape(child: Child, school: string): Promise<void> {
               jsonres.d.includes('The bus has completed the current route and cannot be viewed at this time')
             ) {
               child.active = false;
+              console.info(`  Nothing found for ${child.name}`);
             }
             if (jsonres.d.includes('SetBusPushPin')) {
               const match: RegExpMatchArray | null = jsonres.d.match(/SetBusPushPin\(([-]?\d+\.?\d*),\s*([-]?\d+\.?\d*)/);
               if (match && match[1] && match[2]) {
                 child.location = { lat: match[1], lon: match[2] };
+                console.info(`  Location found for ${child.name}`);
               }
             }
           }
@@ -177,7 +179,7 @@ async function scrape(child: Child, school: string): Promise<void> {
       throw new Error('Session not established');
     }
   } catch (error) {
-    console.error('Scrape error:', error);
+    console.error('  Scrape error:', error);
   }
 }
 
@@ -226,22 +228,22 @@ async function sync(child: Child, school: string): Promise<void> {
           })
           .then((res) => {
             if (res?.ok) {
-              console.info(`Bus location sent to HomeAssistant device '${device}'`);
+              console.info(` Location sent to HomeAssistant device '${device}'`);
               return res;
             }
             throw new Error(res?.status?.toString());
           });
         } else {
-          console.info(`Bus location did not change for '${device}'`);
+          console.info(`  Location did not change for '${device}'`);
         }
       } else {
-        throw new Error('Device ID or Location could not be resolved');
+        throw new Error('Device ID could not be resolved');
       }
     } else {
       throw new Error('Session not established');
     }
   } catch (error) {
-    console.error('Sync Error:', error);
+    console.error('  Sync Error:', error);
   }
 }
 
@@ -254,4 +256,5 @@ async function task(ctx: TaskContext): Promise<void> {
       await sync(child, school);
     }
   }
+  console.info(`Bus location task finished in ${new Date().getTime() - ctx.triggeredAt.getTime()}ms`);
 }
