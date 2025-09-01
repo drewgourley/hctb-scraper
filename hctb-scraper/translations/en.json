@@ -22,7 +22,7 @@
     },
     "schedule": {
       "name": "Schedule",
-      "description": "The cron schedule to use for scraping, minus seconds and minutes which are hard-coded to every 30 seconds. See https://crontab.guru/ for help. Default is '7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12, 1,2,3,4,5' which runs every hour from 7am to 4pm on school days."
+      "description": "The cron schedule to use for scraping, minus seconds and minutes which are hard-coded to every 30 seconds. See https://crontab.guru/ for help. Default is '7,8,9,10,11,12,13,14,15,16 * 1,2,3,4,5,8,9,10,11,12 1,2,3,4,5' which runs every hour from 7am to 4pm on school days."
     }
   }
 }
