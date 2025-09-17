@@ -2,7 +2,9 @@ import { parse, type HTMLElement } from 'node-html-parser';
 import cron, { type TaskContext } from 'node-cron';
 import fetch, { type Response as FetchResponse } from 'node-fetch';
 import {
+  AlertType,
   TrueFalseString,
+  type AlertInput,
   type Child,
   type Config,
   type DeviceResponse,
@@ -18,6 +20,7 @@ const config: Config = process.env as unknown as Config;
 const defaultlocation: Location = { lat: config.DEFAULT_LAT, lon: config.DEFAULT_LON };
 const schools: string[] = config.HCTB_SCHOOLCODE.replace(' ', '').split(',');
 let sessions: Sessions = {};
+let notificationIds: string[] = [];
 
 console.log(`HCTB Scraper started`);
 cron.schedule(`0,30 * ${config.SCHEDULE}`, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
@@ -97,6 +100,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
                 name: option.innerText,
                 id: option.attributes.value!,
                 active: true,
+                alerts: [],
                 location: defaultlocation,
               };
               children.push(child);
@@ -153,6 +157,14 @@ async function scrape(child: Child, school: string): Promise<void> {
         .then((json: any) => {
           if (json && json.d) {
             const jsonres: HCTBResponse = json;
+            if (jsonres.d.includes('ShowMapAlerts')) {
+              child.alerts = [];
+              const alert = jsonres.d.match(/ShowMapAlerts\(\s*(true|false)\s*,\s*(true|false)\s*\)/i);
+              if (alert) {
+                if (alert[1] === 'true') child.alerts.push(AlertType.SUB);
+                if (alert[2] === 'true') child.alerts.push(AlertType.LAG);
+              }
+            }
             if (
               jsonres.d.includes('No stops found for student') ||
               jsonres.d.includes('Vehicle Not In Service') ||
@@ -235,6 +247,38 @@ async function sync(child: Child, school: string): Promise<void> {
           });
         } else {
           console.info(`  Location did not change for '${device}'`);
+        }
+        if (child.alerts.length) {
+          for (const alert of child.alerts) {
+            const name = child.name.endsWith('s') ? `${child.name}'` : `${child.name}'s`;
+            const ride = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-');
+            const notification_id = `${device}_${alert}_${ride}_${sessions[school].time}`;
+            const alertbody: AlertInput = {
+              message: `${name} bus ${alert === AlertType.SUB
+                ? 'has had a substitution, location data may not be available for this ride.'
+                : 'data is experiencing high latency, you may not be able to rely on location data for this ride.'}`,
+              title: 'Here Comes The Bus Alert',
+              notification_id,
+            };
+            if (!notificationIds.includes(notification_id)) {
+              await fetch(`${config.SUPERVISOR_URI}/api/services/persistent_notification/create`, {
+                headers: {
+                  Authorization: `Bearer ${config.SUPERVISOR_TOKEN}`,
+                  'Content-Type': `application/json`,
+                },
+                body: JSON.stringify(alertbody),
+                method: 'POST',
+              })
+              .then((res) => {
+                if (res?.ok) {
+                  console.info(` Alert sent for HomeAssistant device '${device}'`);
+                  notificationIds.push(notification_id);
+                  return res;
+                }
+                throw new Error(res?.status?.toString());
+              });
+            }
+          }
         }
       } else {
         throw new Error('Device ID could not be resolved');

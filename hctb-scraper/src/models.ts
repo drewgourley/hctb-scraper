@@ -18,6 +18,7 @@ export interface Child {
   name: string;
   id: string;
   active: boolean;
+  alerts: AlertType[]
   location: Location;
 }
 
@@ -30,6 +31,11 @@ export interface Session {
   children: Child[];
   time: string;
   expires: Date;
+}
+
+export enum AlertType {
+  SUB = 'substitution',
+  LAG = 'latency',
 }
 
 export enum TrueFalseString {
@@ -49,6 +55,12 @@ type GpsArray = [string, string];
 export interface SyncInput {
   dev_id: string,
   gps: GpsArray,
+}
+
+export interface AlertInput {
+  message: string,
+  title?: string,
+  notification_id?: string,
 }
 
 export interface DeviceResponse {
