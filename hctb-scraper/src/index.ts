@@ -130,6 +130,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
     }
   } catch (error) {
     console.error('  Login error:', error);
+    sessions[school] = null;
   }
 }
 
@@ -151,7 +152,7 @@ async function scrape(child: Child, school: string): Promise<void> {
         })
         .then((res: FetchResponse) => {
           if (res?.ok) return res.json();
-          if (res?.status === 403) sessions[school] = null;
+          sessions[school] = null;
           throw new Error(res?.status?.toString());
         })
         .then((json: any) => {
@@ -192,6 +193,7 @@ async function scrape(child: Child, school: string): Promise<void> {
     }
   } catch (error) {
     console.error('  Scrape error:', error);
+    sessions[school] = null;
   }
 }
 

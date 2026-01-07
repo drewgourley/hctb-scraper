@@ -1,3 +1,2 @@
-## 2025.09.17.0
-* Removed an unnecessary trailing comma in the default schedule; it didn't hurt anything, but it just didn't look right.
-* Added alert functionality for bus substitutions and high latency situations
+## 2026.01.06.0
+* Fixes for a situation in which a session could potentially become stale, resulting in scrapes being skipped until the Add-on was restarted manually or via a full restart of Home Assistant.
