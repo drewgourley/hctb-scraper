@@ -59,9 +59,13 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
         throw new Error('Failed to fetch Form page');
       });
       const form: FormData = new FormData();
+      form.append('__EVENTTARGET', '');
+      form.append('__EVENTARGUMENT', '');
       form.append('__VIEWSTATE', viewstate);
+      form.append('__VIEWSTATEENCRYPTED', '');
       form.append('__VIEWSTATEGENERATOR', viewstategenerator);
       form.append('__EVENTVALIDATION', eventvalidation);
+      form.append('ctl00$ctl00$ddlLanguage', 'en');
       form.append('ctl00$ctl00$cphWrapper$cphContent$tbxUserName', config.HCTB_USERNAME);
       form.append('ctl00$ctl00$cphWrapper$cphContent$tbxPassword', config.HCTB_PASSWORD);
       form.append('ctl00$ctl00$cphWrapper$cphContent$tbxAccountNumber', school);
@@ -80,7 +84,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
         }
         throw new Error('Failed to post Form');
       });
-      if (cookiestring.includes('.ASPXFORMSAUTH')) {
+      if (cookiestring.includes('ASP.NET_SessionId')) {
         let children: Child[] = [];
         let time: string | undefined;
         await fetch('https://login.herecomesthebus.com/map.aspx', {
