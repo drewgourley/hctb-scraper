@@ -39,6 +39,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
       let eventvalidation: string = '';
       await fetch('https://login.herecomesthebus.com/authenticate.aspx', {
         method: 'GET',
+        signal: AbortSignal.timeout(5000),
       })
       .then((res: FetchResponse) => {
         if (res?.ok) {
@@ -75,6 +76,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
         headers: { cookie: cookiestring, 'content-type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(form as unknown as Record<string, string>).toString(),
         method: 'POST',
+        signal: AbortSignal.timeout(5000),
       })
       .then((res: FetchResponse) => {
         if (res.status === 302) {
@@ -90,6 +92,7 @@ async function login(ctx: TaskContext, school: string): Promise<void> {
         await fetch('https://login.herecomesthebus.com/map.aspx', {
           headers: { cookie: cookiestring },
           method: 'GET',
+          signal: AbortSignal.timeout(5000),
         })
         .then((res: FetchResponse) => {
           if (res?.ok) return res.text();
@@ -153,6 +156,7 @@ async function scrape(child: Child, school: string): Promise<void> {
           headers: { cookie: sessions[school].cookiestring, 'content-type': 'application/json; charset=UTF-8' },
           body: JSON.stringify(input),
           method: 'POST',
+          signal: AbortSignal.timeout(5000),
         })
         .then((res: FetchResponse) => {
           if (res?.ok) return res.json();
@@ -215,6 +219,7 @@ async function sync(child: Child, school: string): Promise<void> {
             'Content-Type': `application/json`,
           },
           method: 'GET',
+          signal: AbortSignal.timeout(5000),
         })
         .then((res) => {
           if (res?.ok) {
@@ -243,6 +248,7 @@ async function sync(child: Child, school: string): Promise<void> {
             },
             body: JSON.stringify(syncbody),
             method: 'POST',
+            signal: AbortSignal.timeout(5000),
           })
           .then((res) => {
             if (res?.ok) {
@@ -274,6 +280,7 @@ async function sync(child: Child, school: string): Promise<void> {
                 },
                 body: JSON.stringify(alertbody),
                 method: 'POST',
+                signal: AbortSignal.timeout(5000),
               })
               .then((res) => {
                 if (res?.ok) {

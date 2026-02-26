@@ -9,7 +9,7 @@ Inspired by https://github.com/dispherical/hctb-api
 
 This repository contains the following add-ons
 
-### [HCTB Scraper](./)
+### [HCTB Scraper](https://github.com/drewgourley/hctb-scraper)
 
 [![Home Assistant Add-on](https://img.shields.io/badge/home_assistant-add--on-blue.svg?logo=homeassistant&logoColor=white)](https://github.com/drewgourley/hctb-scraper)
 ![Supports aarch64 Architecture][aarch64-shield]
