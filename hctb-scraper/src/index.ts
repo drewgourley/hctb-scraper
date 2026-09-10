@@ -7,12 +7,14 @@ import {
   type AlertInput,
   type Child,
   type Config,
+  type HAState,
   type HCTBResponse,
   type Location,
   type RefreshMapInput,
   type Session,
   type Sessions,
   type StateInput,
+  type Zone,
 } from './models.js';
 
 const config: Config = process.env as unknown as Config;
@@ -20,6 +22,67 @@ const defaultlocation: Location = { lat: config.DEFAULT_LAT, lon: config.DEFAULT
 const schools: string[] = config.HCTB_SCHOOLCODE.replace(' ', '').split(',');
 let sessions: Sessions = {};
 let notificationIds: string[] = [];
+let zones: Zone[] = [];
+let zonesExpires: number = 0;
+
+async function ensureZones(): Promise<void> {
+  if (zones.length && Date.now() < zonesExpires) return;
+  try {
+    const states: HAState[] = await fetch(`${config.SUPERVISOR_URI}/api/states`, {
+      headers: { Authorization: `Bearer ${config.SUPERVISOR_TOKEN}` },
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+    })
+    .then((res: FetchResponse) => {
+      if (res?.ok) return res.json() as Promise<HAState[]>;
+      throw new Error(res?.status?.toString());
+    });
+    const parsed: Zone[] = [];
+    for (const state of states) {
+      if (!state.entity_id.startsWith('zone.')) continue;
+      const lat: number = Number(state.attributes.latitude);
+      const lon: number = Number(state.attributes.longitude);
+      const radius: number = Number(state.attributes.radius);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(radius)) continue;
+      parsed.push({
+        entity_id: state.entity_id,
+        name: state.attributes.friendly_name ?? state.entity_id.replace(/^zone\./, ''),
+        lat,
+        lon,
+        radius,
+        passive: Boolean(state.attributes.passive),
+        isHome: state.entity_id === 'zone.home',
+      });
+    }
+    zones = parsed;
+    zonesExpires = Date.now() + (60 * 60 * 1000);
+  } catch (error) {
+    console.error('  Zone fetch error:', error);
+  }
+}
+
+// Great-circle distance in meters
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R: number = 6371000;
+  const toRad = (deg: number): number => (deg * Math.PI) / 180;
+  const dLat: number = toRad(lat2 - lat1);
+  const dLon: number = toRad(lon2 - lon1);
+  const a: number = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Resolve the tracker state the way Home Assistant would: smallest non-passive
+// zone the point falls inside -> 'home' for the home zone, else the zone name.
+function zoneStateFor(lat: number, lon: number): string {
+  let best: Zone | null = null;
+  for (const zone of zones) {
+    if (zone.passive) continue;
+    if (haversine(lat, lon, zone.lat, zone.lon) > zone.radius) continue;
+    if (!best || zone.radius < best.radius) best = zone;
+  }
+  if (!best) return 'not_home';
+  return best.isHome ? 'home' : best.name;
+}
 
 console.log(`HCTB Scraper started`);
 cron.schedule(`*/10 * ${config.SCHEDULE}`, async (ctx: TaskContext) => { await task(ctx); }, { noOverlap: true });
@@ -214,8 +277,9 @@ async function sync(child: Child, school: string): Promise<void> {
         const lat: number = Number(child.location.lat);
         const lon: number = Number(child.location.lon);
         if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          await ensureZones();
           const statebody: StateInput = {
-            state: 'not_home',
+            state: zoneStateFor(lat, lon),
             attributes: {
               source_type: 'gps',
               latitude: lat,

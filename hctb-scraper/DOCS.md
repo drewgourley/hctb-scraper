@@ -10,8 +10,10 @@ For each child in your HCTB account, the add-on creates and updates a Home Assis
 
 Add the entity to a Map card to watch the bus live.
 
-## Alerts and Automations
-Because the add-on writes live GPS coordinates, Home Assistant's built-in **zone** trigger works directly off the bus's location — it detects when the bus enters or leaves a zone. Create a zone for anywhere you care about (your Home zone, or a custom zone such as the bus stop), then trigger on it:
+## Zones and Automations
+The tracker's **state** reflects the zone the bus is in, just like any Home Assistant device tracker. Because the add-on writes the entity directly through Home Assistant's API, Home Assistant does not resolve zones for it automatically, so the add-on does it for you: on each update it reads your zones and sets the state to `home` (for your Home zone), the zone's name, or `not_home` when the bus is outside every zone. When the bus falls inside more than one zone, the smallest (most specific) one wins. Passive zones are ignored for the state but still work with `zone` triggers.
+
+Create a zone for anywhere you care about (your Home zone, the bus stop, each destination school), then automate on it. You can use either a **state** trigger (the state now becomes the zone name) or a **zone** trigger:
 
 ```yaml
 automation:
@@ -27,7 +29,9 @@ automation:
           message: "Child's bus is arriving home!"
 ```
 
-Use `event: leave` to fire when the bus departs a zone. Note: the tracker's *state* stays a static value (the map and zone triggers use the GPS coordinates, not the state), so use a `zone` trigger rather than a state trigger like `to: "home"`.
+Use `event: leave` to fire when the bus departs a zone.
+
+Zones are cached for an hour, so if you add or move a zone it may take up to an hour (or an add-on restart) before the tracker picks it up.
 
 If you previously ran this add-on with the old `device_tracker.see` output or the webhook/template approach, you can remove those `*_bus` entries from `known_devices.yaml` and delete the template `device_tracker` from your `configuration.yaml` — they are no longer needed.
 

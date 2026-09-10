@@ -1,3 +1,6 @@
+## 2026.09.10.0
+* The tracker state now reflects the zone the bus is in. Because the add-on writes the entity directly through the states API, Home Assistant does not resolve zones for it, so the state was stuck at `not_home`/`Away`. The add-on now reads your zones and sets the state to `home`, the matching zone's name, or `not_home` (smallest non-passive zone wins), just like a normal device tracker.
+
 ## 2026.08.19.2
 * Removed in-add-on zone computation; the tracker just publishes GPS with a static state, so the bus icon is no longer overridden by a zone. Home Assistant's `zone` triggers work off the coordinates for enter/leave alert automations (see DOCS).
 

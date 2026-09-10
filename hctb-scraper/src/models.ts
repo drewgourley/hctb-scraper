@@ -70,6 +70,23 @@ export interface DeviceResponse {
   }
 }
 
+// GET /api/states entry (used to read zone.* entities)
+export interface HAState {
+  entity_id: string;
+  state: string;
+  attributes: Record<string, any>;
+}
+
+export interface Zone {
+  entity_id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  radius: number;
+  passive: boolean;
+  isHome: boolean;
+}
+
 export interface HCTBResponse {
   d: string;
 }
